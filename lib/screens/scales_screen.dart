@@ -3,128 +3,196 @@ import 'package:guitarscales/data/scales_data.dart' as ScaleData;
 import '../utils/logic.dart';
 
 class ScalesScreen extends StatefulWidget {
-  const ScalesScreen({super.key});
+  final bool isLeftHanded;
+
+  const ScalesScreen({super.key, required this.isLeftHanded});
 
   @override
   State<ScalesScreen> createState() => _ScalesScreenState();
 }
 
 class _ScalesScreenState extends State<ScalesScreen> {
+  final Map<String, List> scalesMap = {
+    "Pentatonic Minor": ScaleData.pentatonicMinor,
+    "Major Scale": ScaleData.majorScale,
+    "Harmonic Minor": ScaleData.HarmonicMinor,
+    "Melodic Minor": ScaleData.MelodicMinor,
+    "Diminished": ScaleData.Diminished,
+    "Blues": ScaleData.pentatonicblues,
+  };
+
+  final List<String> rootNotes = [
+    "E", "F", "F#", "G", "G#", "A", "A#", "B", "C", "C#", "D", "D#"
+  ];
+
   List<int> selectedNotesFlat = [];
-  String currentScaleName = "Pentatonic Minor";
+  String selectedScaleName = "Pentatonic Minor";
+  String selectedRootNote = "E";
 
   @override
   void initState() {
     super.initState();
-    _updateScale(ScaleData.pentatonicMinor, 0, "Pentatonic Minor");
+    _updateDisplay();
   }
 
-  void _updateScale(List sourceList, int shift, String name) {
-    List shiftedList = MusicLogic.rotatePattern(shift, sourceList);
+  void _updateDisplay() {
+    List sourceList = scalesMap[selectedScaleName]!;
+    int shiftAmount = rootNotes.indexOf(selectedRootNote);
+    List shiftedList = MusicLogic.rotatePattern(shiftAmount, sourceList);
+    
     setState(() {
       selectedNotesFlat = MusicLogic.flattenSelectionList(shiftedList);
-      currentScaleName = name;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(currentScaleName),
-        backgroundColor: Colors.blueGrey,
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blueGrey),
-              child: Text('Gam Seçimi', style: TextStyle(color: Colors.white, fontSize: 24)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.music_note),
-              title: const Text('Pentatonic Minor'),
-              onTap: () {
-                _updateScale(ScaleData.pentatonicMinor, 0, 'Pentatonic Minor');
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.music_note),
-              title: const Text('Major Scale'),
-              onTap: () {
-                _updateScale(ScaleData.majorScale, 0, 'Major Scale');
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.music_note),
-              title: const Text('Dorian Mode'),
-              subtitle: const Text('Major -2 offset'),
-              onTap: () {
-                _updateScale(ScaleData.majorScale, -2, 'Dorian');
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
+      backgroundColor: const Color(0xFF212121),
       body: SafeArea(
         child: Column(
           children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              color: Colors.black87,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Ton", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        DropdownButton<String>(
+                          value: selectedRootNote,
+                          isExpanded: true,
+                          dropdownColor: Colors.grey[900],
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          underline: Container(height: 2, color: Colors.orangeAccent),
+                          items: rootNotes.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (newValue) {
+                            setState(() {
+                              selectedRootNote = newValue!;
+                              _updateDisplay();
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Gam", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        DropdownButton<String>(
+                          value: selectedScaleName,
+                          isExpanded: true,
+                          dropdownColor: Colors.grey[900],
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          underline: Container(height: 2, color: Colors.blueAccent),
+                          items: scalesMap.keys.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (newValue) {
+                            setState(() {
+                              selectedScaleName = newValue!;
+                              _updateDisplay();
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.height,
-                  width: 22 * 50.0, 
+                reverse: widget.isLeftHanded, 
+                child: Container(
+                  color: const Color(0xFF3E2723), 
+                  width: 22 * 60.0,
                   child: GridView.builder(
+                    reverse: widget.isLeftHanded, 
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 132, 
+                    itemCount: 132,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 22,
-                      mainAxisExtent: (MediaQuery.of(context).size.height - 180) / 6,
-                      mainAxisSpacing: 1,
-                      crossAxisSpacing: 1,
+                      mainAxisExtent: (MediaQuery.of(context).size.height - 150) / 6,
+                      mainAxisSpacing: 0,
+                      crossAxisSpacing: 0,
                     ),
                     itemBuilder: (context, index) {
+                      int row = index ~/ 22;
+                      int col = index % 22;
                       bool isSelected = false;
+                      
                       if (index < selectedNotesFlat.length) {
                          isSelected = selectedNotesFlat[index] == 1;
                       }
 
+                      bool isSingleDot = [3, 5, 7, 9, 15, 17, 19, 21].contains(col);
+                      bool isDoubleDot = col == 12;
+                      bool showDot = false;
+                      if (isSingleDot && row == 3) showDot = true;
+                      if (isDoubleDot && (row == 1 || row == 4)) showDot = true;
+
                       return Container(
                         decoration: BoxDecoration(
-                          color: Colors.brown[300], 
-                          border: Border.all(color: Colors.grey.shade800),
+                          border: Border(
+                            right: BorderSide(color: Colors.grey.shade400, width: 2.5),
+                            left: col == 0 
+                              ? const BorderSide(color: Colors.white, width: 6) 
+                              : BorderSide.none,
+                          ),
                         ),
-                        child: Center(
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Divider(
-                                color: Colors.grey[800], 
-                                thickness: 2
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            if (showDot)
+                              Container(
+                                width: 20, height: 20,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withOpacity(0.3),
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                              if (isSelected)
-                                Container(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.orangeAccent,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [BoxShadow(blurRadius: 2, color: Colors.black26)]
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      ScaleData.allNotes[index],
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                    ),
+                            Container(
+                              height: 1.0 + row * 0.7,
+                              color: const Color(0xFFBCAAA4),
+                              width: double.infinity,
+                            ),
+                            if (isSelected)
+                              Container(
+                                width: 28, height: 28,
+                                decoration: BoxDecoration(
+                                  color: Colors.orange,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(color: Colors.black.withOpacity(0.6), blurRadius: 4, offset: const Offset(0, 2))
+                                  ]
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    ScaleData.allNotes[index],
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 12),
                                   ),
                                 ),
-                            ],
-                          ),
+                              ),
+                          ],
                         ),
                       );
                     },
